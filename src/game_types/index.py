@@ -179,7 +179,7 @@ class Bonus:
         self.width = width
         self.height = height
         self.active = True
-        self.lifetime = 150
+        self.lifetime = 300
         self.timer = 0
         self.position = self.spawn()
         
