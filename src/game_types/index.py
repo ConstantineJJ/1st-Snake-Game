@@ -269,7 +269,7 @@ class Bonus:
         self.width = width
         self.height = height
         self.active = True
-        self.lifetime = 500
+        self.lifetime = 1000
         self.timer = 0
         self.position = self.spawn()
         
@@ -313,7 +313,7 @@ class Debuff:
         self.width = width
         self.height = height
         self.active = True
-        self.lifetime = 400
+        self.lifetime = 800
         self.timer = 0
         self.position = self.spawn()
         
@@ -357,7 +357,7 @@ class Strawberry:
         self.width = width
         self.height = height
         self.active = True
-        self.lifetime = 400
+        self.lifetime = 800
         self.timer = 0
         self.position = self.spawn()
         
@@ -399,7 +399,7 @@ class Diamond:
         self.width = width
         self.height = height
         self.active = True
-        self.lifetime = 300
+        self.lifetime = 600
         self.timer = 0
         self.position = self.spawn()
         
@@ -441,7 +441,7 @@ class Star:
         self.width = width
         self.height = height
         self.active = True
-        self.lifetime = 500
+        self.lifetime = 1000
         self.timer = 0
         self.position = self.spawn()
         
@@ -483,7 +483,7 @@ class Mushroom:
         self.width = width
         self.height = height
         self.active = True
-        self.lifetime = 350
+        self.lifetime = 700
         self.timer = 0
         self.position = self.spawn()
         
@@ -525,7 +525,7 @@ class Ice:
         self.width = width
         self.height = height
         self.active = True
-        self.lifetime = 300
+        self.lifetime = 600
         self.timer = 0
         self.position = self.spawn()
         
@@ -577,12 +577,13 @@ class Obstacle:
         except Exception as e:
             print(f"❌ Ошибка загрузки камня: {e}")
             self.texture = None
-        
-        self.generate_obstacles()
 
     def generate_obstacles(self, snake=None):
         """Генерирует случайные препятствия 2х2"""
         self.positions = []
+        # Получаем y-координату горизонтальной линии змеи (все сегменты на одной y при старте)
+        snake_y = snake.body[0][1] if snake else None
+        
         for _ in range(self.count):
             attempts = 0
             while attempts < 100:  # Защита от бесконечного цикла
@@ -594,6 +595,14 @@ class Obstacle:
                     (x, y), (x+1, y),
                     (x, y+1), (x+1, y+1)
                 ]
+                
+                # Исключаем горизонтальную линию, где спавнится змея (включая соседние строки для безопасности)
+                if snake_y is not None:
+                    # Исключаем 3 строки: саму строку змеи и по одной сверху и снизу
+                    excluded_y_values = {snake_y - 1, snake_y, snake_y + 1, snake_y + 2}
+                    if any(y == excluded_y for excluded_y in excluded_y_values):
+                        attempts += 1
+                        continue
                 
                 # Проверяем что нет пересечений с другими камнями
                 overlap = False
@@ -651,6 +660,7 @@ class Game:
         
         # Препятствия
         self.obstacles = Obstacle(self.base_grid_size, width // self.grid_size, height // self.grid_size, count=5)
+        self.obstacles.generate_obstacles(self.snake)  # Генерируем с учетом змеи
         
         self.score = 0
         self.game_over = False
@@ -666,6 +676,8 @@ class Game:
         self.last_pickup_was_bonus = False  # Для отслеживания комбо
         self.level = 1  # Текущий уровень
         self._score_saved = False  # Флаг для сохранения рекорда
+        self.wall_surfaces = None
+        self.wall_hud_gap_width = 360
         
         self.font = pygame.font.Font(None, 36)
         self.small_font = pygame.font.Font(None, 24)
@@ -694,14 +706,21 @@ class Game:
         if self.freeze_timer > 0:
             self.freeze_timer -= 1
         
-        # Обёртывание через края
+        # Обёртывание через края (до 5 уровня) или стены по периметру (после 5 уровня)
         head_x, head_y = self.snake.body[0]
         grid_width = self.width // self.grid_size
         grid_height = self.height // self.grid_size
         
-        head_x = head_x % grid_width
-        head_y = head_y % grid_height
-        self.snake.body[0] = (head_x, head_y)
+        if self.level > 5:
+            if head_x < 0 or head_x >= grid_width or head_y < 0 or head_y >= grid_height:
+                self.game_over = True
+                if self.controller:
+                    self.controller.rumble(1.0, 1.0, 500)
+                return
+        else:
+            head_x = head_x % grid_width
+            head_y = head_y % grid_height
+            self.snake.body[0] = (head_x, head_y)
 
         # Проверка столкновения с собой (если нет неуязвимости)
         if self.invincible_timer == 0:
@@ -819,7 +838,7 @@ class Game:
         if self.ice.active and self.snake.body[0] == self.ice.position:
             self.snake.grow()
             self.score += 1
-            self.freeze_timer = 30  # 0.5 секунды при 60 FPS
+            self.freeze_timer = 600  # 10 секунд при 60 FPS
             self.ice.spawn(self.snake)
             self.last_pickup_was_bonus = False
             self.combo_counter = 0
@@ -828,8 +847,8 @@ class Game:
             self.check_level_up()
     
     def check_level_up(self):
-        """Проверка повышения уровня каждые 100 очков"""
-        new_level = (self.score // 100) + 1
+        """Проверка повышения уровня каждые 250 очков"""
+        new_level = (self.score // 250) + 1
         if new_level > self.level:
             self.level = new_level
             # Добавляем новые препятствия каждый уровень
@@ -858,7 +877,7 @@ class Game:
                 self.reset()
         
         if event.type == pygame.JOYBUTTONDOWN:
-            if event.button == 0:
+            if event.button == 4:
                 self.reset()
         
         if event.type == pygame.JOYAXISMOTION and event.axis == 4:
@@ -866,6 +885,21 @@ class Game:
 
     def draw(self, screen):
         self.background.draw(screen)
+        
+        # Рисуем стены по периметру после 5 уровня
+        if self.level > 5:
+            if self.wall_surfaces is None:
+                self.wall_surfaces = self._build_wall_surfaces()
+            wall_h, wall_v = self.wall_surfaces
+            wall_thickness = self.grid_size
+            # Верхняя стена с зазором под UI
+            if self.wall_hud_gap_width < self.width:
+                screen.blit(wall_h, (self.wall_hud_gap_width, 0), area=pygame.Rect(self.wall_hud_gap_width, 0, self.width - self.wall_hud_gap_width, wall_thickness))
+            # Нижняя стена
+            screen.blit(wall_h, (0, self.height - wall_thickness))
+            # Левая и правая стены
+            screen.blit(wall_v, (0, 0))
+            screen.blit(wall_v, (self.width - wall_thickness, 0))
         
         # Рисуем препятствия
         self.obstacles.draw(screen)
@@ -943,6 +977,57 @@ class Game:
             screen.blit(level_display, (self.width // 2 - level_display.get_width() // 2, self.height // 2 + 20))
             screen.blit(restart_text, (self.width // 2 - restart_text.get_width() // 2, self.height // 2 + 60))
 
+    def _build_wall_surfaces(self):
+        wall_thickness = self.grid_size
+        base_color = (105, 105, 120)
+        alt_color = (130, 130, 150)
+        crack_color = (70, 70, 85)
+        stone_color = (90, 90, 105)
+        tile = max(8, self.grid_size // 2)
+
+        wall_h = pygame.Surface((self.width, wall_thickness))
+        wall_v = pygame.Surface((wall_thickness, self.height))
+
+        wall_h.fill(base_color)
+        wall_v.fill(base_color)
+
+        # Шахматный паттерн
+        for y in range(0, wall_thickness, tile):
+            for x in range(0, self.width, tile):
+                if ((x // tile) + (y // tile)) % 2 == 0:
+                    pygame.draw.rect(wall_h, alt_color, (x, y, tile, tile))
+        for y in range(0, self.height, tile):
+            for x in range(0, wall_thickness, tile):
+                if ((x // tile) + (y // tile)) % 2 == 0:
+                    pygame.draw.rect(wall_v, alt_color, (x, y, tile, tile))
+
+        rng = random.Random(17)
+        # Камни
+        for _ in range(40):
+            x = rng.randint(0, self.width - 1)
+            y = rng.randint(0, wall_thickness - 1)
+            r = rng.randint(2, 4)
+            pygame.draw.circle(wall_h, stone_color, (x, y), r)
+        for _ in range(40):
+            x = rng.randint(0, wall_thickness - 1)
+            y = rng.randint(0, self.height - 1)
+            r = rng.randint(2, 4)
+            pygame.draw.circle(wall_v, stone_color, (x, y), r)
+
+        # Трещины
+        for _ in range(12):
+            x1 = rng.randint(0, self.width - 1)
+            x2 = min(self.width - 1, x1 + rng.randint(30, 120))
+            y = rng.randint(2, wall_thickness - 3)
+            pygame.draw.line(wall_h, crack_color, (x1, y), (x2, y), 1)
+        for _ in range(12):
+            y1 = rng.randint(0, self.height - 1)
+            y2 = min(self.height - 1, y1 + rng.randint(30, 120))
+            x = rng.randint(2, wall_thickness - 3)
+            pygame.draw.line(wall_v, crack_color, (x, y1), (x, y2), 1)
+
+        return wall_h, wall_v
+
     def reset(self):
         self.snake = Snake(self.base_grid_size)
         self.food = Food(self.base_grid_size, self.width // self.grid_size, self.height // self.grid_size)
@@ -954,6 +1039,7 @@ class Game:
         self.mushroom = Mushroom(self.base_grid_size, self.width // self.grid_size, self.height // self.grid_size)
         self.ice = Ice(self.base_grid_size, self.width // self.grid_size, self.height // self.grid_size)
         self.obstacles = Obstacle(self.base_grid_size, self.width // self.grid_size, self.height // self.grid_size, count=5)
+        self.obstacles.generate_obstacles(self.snake)  # Генерируем с учетом змеи
         self.background = Background(self.width, self.height, self.grid_size)
         self.score = 0
         self.game_over = False

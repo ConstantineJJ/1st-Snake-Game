@@ -10,9 +10,14 @@ def load_highscores():
     try:
         if os.path.exists(highscore_file):
             with open(highscore_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return []
-    except:
+                data = json.load(f)
+                print(f"📖 Загружено {len(data)} рекордов из файла")
+                return data
+        else:
+            print(f"⚠️ Файл рекордов не найден: {highscore_file}")
+            return []
+    except Exception as e:
+        print(f"❌ Ошибка загрузки рекордов: {e}")
         return []
 
 def save_highscores(highscores):
@@ -21,14 +26,16 @@ def save_highscores(highscores):
     try:
         with open(highscore_file, 'w', encoding='utf-8') as f:
             json.dump(highscores, f, indent=2, ensure_ascii=False)
-    except:
-        pass
+        print(f"✅ Таблица рекордов сохранена в {highscore_file}")
+    except Exception as e:
+        print(f"❌ Ошибка сохранения: {e}")
 
-def add_highscore(score, level):
+def add_highscore(score, level, name="Player"):
     """Добавляет новый рекорд в таблицу"""
     highscores = load_highscores()
     from datetime import datetime
     highscores.append({
+        'name': name,
         'score': score,
         'level': level,
         'date': datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -36,7 +43,86 @@ def add_highscore(score, level):
     # Сортируем по убыванию очков и оставляем топ-10
     highscores = sorted(highscores, key=lambda x: x['score'], reverse=True)[:10]
     save_highscores(highscores)
+    print(f"💾 Рекорд сохранен: {name} - {score} очков (уровень {level})")
     return highscores
+
+def input_player_name(screen, score, level, controller=None):
+    """Экран ввода имени игрока для сохранения рекорда"""
+    print(f"\n🎮 Открываю экран ввода имени для рекорда {score}...")
+    font = pygame.font.Font(None, 64)
+    medium_font = pygame.font.Font(None, 48)
+    small_font = pygame.font.Font(None, 36)
+    
+    player_name = ""
+    max_name_length = 15
+    clock = pygame.time.Clock()
+    
+    while True:
+        screen.fill((20, 20, 40))
+        
+        # Заголовок
+        title = font.render("🎮 НОВЫЙ РЕКОРД! 🎮", True, (255, 215, 0))
+        screen.blit(title, (screen.get_width() // 2 - title.get_width() // 2, 80))
+        
+        # Информация о рекорде
+        score_text = medium_font.render(f"Счет: {score}", True, (255, 255, 255))
+        level_text = medium_font.render(f"Уровень: {level}", True, (255, 255, 255))
+        screen.blit(score_text, (screen.get_width() // 2 - score_text.get_width() // 2, 200))
+        screen.blit(level_text, (screen.get_width() // 2 - level_text.get_width() // 2, 280))
+        
+        # Ввод имени
+        input_label = medium_font.render("Введите ваше имя:", True, (200, 200, 200))
+        screen.blit(input_label, (screen.get_width() // 2 - input_label.get_width() // 2, 400))
+        
+        # Поле ввода
+        input_box_width = 500
+        input_box_height = 60
+        input_box_x = screen.get_width() // 2 - input_box_width // 2
+        input_box_y = 500
+        pygame.draw.rect(screen, (100, 100, 100), (input_box_x, input_box_y, input_box_width, input_box_height), 2)
+        
+        # Текст в поле
+        name_display = player_name + ("_" if len(player_name) < max_name_length else "")
+        name_text = medium_font.render(name_display, True, (255, 255, 255))
+        screen.blit(name_text, (input_box_x + 20, input_box_y + 10))
+        
+        # Подсказка
+        hint = small_font.render("Enter для сохранения | Backspace для удаления | ESC для отмены", True, (150, 150, 150))
+        screen.blit(hint, (screen.get_width() // 2 - hint.get_width() // 2, screen.get_height() - 100))
+        
+        pygame.display.flip()
+        clock.tick(60)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                    # Сохраняем рекорд
+                    if len(player_name) == 0:
+                        player_name = "Player"
+                    print(f"✅ Сохраняю имя: {player_name}")
+                    add_highscore(score, level, player_name)
+                    return
+                elif event.key == pygame.K_BACKSPACE:
+                    player_name = player_name[:-1]
+                elif event.key == pygame.K_ESCAPE:
+                    return
+                elif len(player_name) < max_name_length:
+                    if event.unicode.isalnum() or event.unicode in " -_":
+                        player_name += event.unicode
+            
+            # Геймпад кнопка A для ввода
+            if event.type == pygame.JOYBUTTONDOWN:
+                if event.button == 0:  # Cross/A - подтвердить
+                    if len(player_name) == 0:
+                        player_name = "Player"
+                    add_highscore(score, level, player_name)
+                    return
+                elif event.button == 1:  # Circle/B - отмена
+                    return
 
 def show_highscores(screen, controller=None):
     """Показывает таблицу рекордов"""
@@ -59,14 +145,16 @@ def show_highscores(screen, controller=None):
             for i, record in enumerate(highscores):
                 rank_color = (255, 215, 0) if i == 0 else (192, 192, 192) if i == 1 else (205, 127, 50) if i == 2 else (255, 255, 255)
                 rank_text = medium_font.render(f"{i+1}.", True, rank_color)
+                name_text = medium_font.render(record.get('name', 'Player'), True, rank_color)
                 score_text = medium_font.render(f"{record['score']} очков", True, rank_color)
                 level_text = small_font.render(f"Ур.{record['level']}", True, (150, 150, 150))
                 date_text = small_font.render(f"{record['date']}", True, (120, 120, 120))
                 
-                screen.blit(rank_text, (400, y_pos))
-                screen.blit(score_text, (500, y_pos))
+                screen.blit(rank_text, (300, y_pos))
+                screen.blit(name_text, (380, y_pos))
+                screen.blit(score_text, (600, y_pos))
                 screen.blit(level_text, (850, y_pos))
-                screen.blit(date_text, (1050, y_pos))
+                screen.blit(date_text, (1000, y_pos))
                 y_pos += 65
         else:
             no_records = medium_font.render("Рекордов пока нет", True, (150, 150, 150))
@@ -297,12 +385,19 @@ def main():
         if draw:
             draw(screen)
         
-        # Если игра закончилась, сохраняем рекорд
-        if game.game_over and not hasattr(game, '_score_saved'):
-            add_highscore(game.score, game.level)
-            game._score_saved = True
-        
         pygame.display.flip()
+        
+        # Если игра закончилась, просим ввести имя и сохранить рекорд
+        if game.game_over and not game._score_saved:
+            input_player_name(screen, game.score, game.level, controller)
+            game._score_saved = True
+            # После сохранения рекорда, показываем меню
+            action = show_menu(screen, controller)
+            if action == "exit":
+                pygame.quit()
+                sys.exit()
+            # Иначе перезагружаем игру
+            game_running = False
         
         # Постоянные 60 FPS для плавности отрисовки
         clock.tick(60)
