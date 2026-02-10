@@ -1,0 +1,177 @@
+# 🐍 Snake Game - Enhanced Classic Snake
+
+A modern take on the classic Snake game with upgraded graphics, bonuses, debuffs, and gamepad support.
+
+## 🎮 Game Features
+
+- **Full HD graphics** - runs at 1920×1080
+- **High-quality textures** - unique sprites for the head, body, tail, and turns
+- **Gamepad support** - fully supports DualSense and other controllers
+- **Bonus & debuff system** - 8 different items for varied gameplay
+- **Combo system** - earn more points by chaining bonuses
+- **Obstacles** - 2×2 rocks appear as levels increase
+- **Highscore table** - top-10 results saved with player names
+- **Level system** - every 250 points gives a new level with extra obstacles
+
+## 🕹️ Controls
+
+### Keyboard
+- **Arrow keys** (↑ ↓ ← →) - move the snake
+- **ESC** - open menu
+- **R** - restart after Game Over
+
+### Gamepad (DualSense / Xbox)
+- **Left Stick / D-Pad** - move the snake
+- **R2 (trigger)** - speed boost (the harder you press, the faster it goes)
+- **Start** (☰ button) - open menu
+- **Cross (X) / A** - confirm in menu
+- **Circle (O) / B** - back/cancel
+
+## 🎁 Bonuses & Items
+
+### Regular Food 🍖
+- **Points**: 1-5 (random)
+- **Effect**: increases snake length
+
+### Apple 🍎 (Bonus)
+- **Points**: +3 (or more with combo)
+- **Effect**: speed boost for 2.5 seconds
+- **Lifetime**: 16.7 seconds
+
+### Spider 🕷️ (Debuff)
+- **Points**: -1
+- **Effect**: slowdown for 2.5 seconds
+- **Lifetime**: 13.3 seconds
+
+### Strawberry 🍓 (Special bonus)
+- **Points**: +5 (or more with combo)
+- **Effect**: shortens the snake by 1 segment (minimum 3)
+- **Lifetime**: 13.3 seconds
+
+### Diamond 💎 (Rare bonus)
+- **Points**: +10 (or more with combo)
+- **Effect**: increases snake length
+- **Lifetime**: 10 seconds
+
+### Star ⭐ (Invincibility)
+- **Points**: +2
+- **Effect**: invincible for 5 seconds (pass through yourself and obstacles)
+- **Lifetime**: 16.7 seconds
+
+### Mushroom 🍄 (Debuff)
+- **Points**: +1
+- **Effect**: reverse controls for 3 seconds
+- **Lifetime**: 11.7 seconds
+
+### Ice 🧊 (Debuff)
+- **Points**: +1
+- **Effect**: freeze for 10 seconds (snake cannot move)
+- **Lifetime**: 10 seconds
+
+### Obstacles (Rocks) 🪨
+- **Size**: 2×2 tiles
+- **Effect**: Game Over on collision
+- **Count**: increases with level (5 → 15 max)
+
+## 🎯 Combo System
+
+Collect bonus items (apple, strawberry, diamond, star) in a row to increase the multiplier:
+- **1 in a row**: normal points
+- **2 in a row**: ×2 points
+- **3 in a row**: ×3 points
+- And so on...
+
+**Note**: Regular food or debuffs reset the combo.
+
+## 📊 Level System
+
+- **Level 1**: starting level, 5 rocks
+- **Every 250 points**: +1 level
+- **Each new level**: +1 extra obstacle
+- **Max obstacles**: 15 rocks
+- **After level 5**: perimeter walls appear (no wrap-through at edges)
+
+## 🏆 Highscore Table
+
+- Saves **top-10** best results
+- Each record stores:
+  - Player name
+  - Score
+  - Level reached
+  - Date/time
+- Save file: `src/highscores.json`
+
+## 📋 Game Menu
+
+Press **ESC** or **Start** to open the menu:
+- **Resume** - continue the game
+- **Highscores** - view the highscore table
+- **Exit** - quit the game
+
+## 🎨 Technical Details
+
+- **Resolution**: 1920×1080 (Full HD)
+- **FPS**: 60
+- **Grid size**: 40×40 pixels
+- **Textures**: PNG with transparency
+- **Effects**: gamepad rumble on pickups and Game Over
+
+## 🛠️ Requirements
+
+- Python 3.7+
+- pygame
+- OS: Windows / Linux / macOS
+
+## 🚀 Run the Game
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the game
+python src/main.py
+```
+
+## 📁 Project Structure
+
+```
+snake-game/
+├── src/
+│   ├── main.py              # Main game file
+│   ├── highscores.json      # Saved highscores
+│   └── game_types/
+│       └── index.py         # Game classes
+├── assets/
+│   ├── snake_head.png       # Head texture
+│   ├── snake_body.png       # Body texture
+│   ├── snake_body_diagonal.png  # Turn texture
+│   ├── snake_tail.png       # Tail texture
+│   ├── food.png             # Regular food
+│   ├── bonus_apple.png      # Apple
+│   ├── debuff_spider.png    # Spider
+│   ├── strawberry.png       # Strawberry
+│   ├── diamond.png          # Diamond
+│   ├── star.png             # Star
+│   ├── mushroom.png         # Mushroom
+│   ├── ice.png              # Ice
+│   └── obstacle.png         # Rock
+├── requirements.txt
+└── README.md
+```
+
+## 🎮 Tips
+
+1. **Use R2 for speed** - especially useful when chasing bonuses
+2. **Watch the combo** - chain bonus pickups for higher scores
+3. **Avoid the spider** - slowdown can be deadly
+4. **Use the star wisely** - pass through obstacles while invincible
+5. **Manage your length** - use strawberry to shorten the snake
+6. **Be careful with the mushroom** - reversed controls can be tricky
+
+## 👨‍💻 Development
+
+Built with Pygame and structured to be easily extended with new items and mechanics.
+
+---
+
+**Have fun! 🐍✨**
